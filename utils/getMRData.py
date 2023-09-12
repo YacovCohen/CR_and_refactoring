@@ -1,37 +1,55 @@
+from argparse import ArgumentParser
 from github import Github
-import getpass
+import requests
 
-def fetch_pull_request_data(repo_url, mr_number):
-    # Parse the repository URL to extract the owner and repo name
-    # Example URL: https://github.com/owner/repo
-    parts = repo_url.strip('/').split('/')
-    owner = parts[-2]
-    repo_name = parts[-1]
 
-    # Create a GitHub instance (you may need to provide your GitHub credentials)
-    username = input("Enter your GitHub username: ")
-    password = getpass.getpass("Enter your GitHub password or access token: ")
-    g = Github(username, password)
+DEFAULT_REPO = "CR_and_refactoring"
+DEFAULT_OWNER = "YacovCohen"
 
-    try:
-        # Get the repository
-        repo = g.get_repo(f"{owner}/{repo_name}")
 
-        # Get the pull request by number
-        pull_request = repo.get_pull(int(mr_number))
+def fetch_pull_request_data(repo_name, owner, mr_number, token):
+	# Make an authenticated GET request to retrieve the MR details
+	headers = {"Authorization": f"token {token}"}
+ 
+	g = Github(owner, token)
+	repo = g.get_repo(f"{owner}/{repo_name}")
+	pull_request = repo.get_pull(int(mr_number))
+	print_repo_data(pull_request)
+ 
+	for file in pull_request.get_files():
+    	# Get the file content
+		file_content = getContent(url_file=file.raw_url, headers=headers)
+		
+		if file_content is not None:
+			print(f"File Name: {file.filename}")
+			print("File Content:")
+			print(file_content)
+			print("\n" + "-" * 40 + "\n")
 
-        # Print pull request details
-        print(f"Title: {pull_request.title}")
-        print(f"Author: {pull_request.user.login}")
-        print(f"Created at: {pull_request.created_at}")
-        print(f"Updated at: {pull_request.updated_at}")
-        print(f"URL: {pull_request.html_url}")
-        print(f"Description:\n{pull_request.body}")
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
+def print_repo_data(pull_request):
+	print(f"Title: {pull_request.title}")
+	print(f"Author: {pull_request.user.login}")
+	print(f"Created at: {pull_request.created_at}")
+	print(f"Updated at: {pull_request.updated_at}")
+	print(f"URL: {pull_request.html_url}")
+	print(f"Description:\n{pull_request.body}")
+
+def getContent(url_file, headers):
+	response = requests.get(url_file, headers)
+
+	if response.status_code == 200:
+		return response.text
+
+	print(f"Failed to fetch file content. Status code: {response.status_code}")
+	return None
+	
 
 if __name__ == "__main__":
-    repo_url = input("Enter the GitHub repository URL: ")
-    mr_number = input("Enter the pull request (MR) number: ")
+	parser = ArgumentParser(description="Util: get MR data")
+	parser.add_argument("--repo_name", "-r", help="Repository name", default=DEFAULT_REPO)
+	parser.add_argument("--owner", "-o", help="Repository owner", default=DEFAULT_OWNER)
+	parser.add_argument("--mr_number", "-n", help="MR number.", default=None)
+	parser.add_argument("--token", "-t", help="GitHub token.", default=None)
+	args = parser.parse_args()
 
-    fetch_pull_request_data(repo_url, mr_number)
+	fetch_pull_request_data(args.repo_name, args.owner, args.mr_number, args.token)
