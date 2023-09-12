@@ -27,6 +27,7 @@ def fetch_pull_request_data(repo_url, mr_number):
         print(f"Updated at: {pull_request.updated_at}")
         print(f"URL: {pull_request.html_url}")
         print(f"Description:\n{pull_request.body}")
+        print(f"List of changed files:\n{pull_request.get_files}")
     except Exception as e:
         print(f"An error occurred: {str(e)}")
 
