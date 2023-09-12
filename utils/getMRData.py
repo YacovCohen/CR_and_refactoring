@@ -5,8 +5,6 @@ import requests
 
 DEFAULT_REPO = "CR_and_refactoring"
 DEFAULT_OWNER = "YacovCohen"
-# TOKEN = "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"
-TOKEN = "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"
 
 def fetch_pull_request_data(repo_name, owner, mr_number):
 	# Make an authenticated GET request to retrieve the MR details
