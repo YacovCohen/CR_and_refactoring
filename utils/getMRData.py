@@ -1,38 +1,35 @@
-from github import Github
-import getpass
+from argparse import ArgumentParser
+import requests
 
-def fetch_pull_request_data(repo_url, mr_number):
-    # Parse the repository URL to extract the owner and repo name
-    # Example URL: https://github.com/owner/repo
-    parts = repo_url.strip('/').split('/')
-    owner = parts[-2]
-    repo_name = parts[-1]
+DEFAULT_REPO = "CR_and_refactoring"
+DEFAULT_OWNER = "YacovCohen"
 
-    # Create a GitHub instance (you may need to provide your GitHub credentials)
-    username = input("Enter your GitHub username: ")
-    password = getpass.getpass("Enter your GitHub password or access token: ")
-    g = Github(username, password)
+def fetch_pull_request_data(repo_name, owner, mr_number):
+	token = "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"
+	# Make an authenticated GET request to retrieve the MR details
+	url = f"https://api.github.com/repos/{owner}/{repo_name}/pulls/{mr_number}/files"
+	headers = {"Authorization": f"token {token}"}
 
-    try:
-        # Get the repository
-        repo = g.get_repo(f"{owner}/{repo_name}")
+	response = requests.get(url, headers=headers)
+	if response.status_code == 200:
+		changes = response.json()
+		for change in changes:
+			print(f"File: {change['filename']}")
+			print(f"Status: {change['status']}")
+			print(f"Additions: {change['additions']}")
+			print(f"Deletions: {change['deletions']}")
+			print(f"Changes: {change['changes']}")
+			print("\n")
+	else:
+		print(
+			f"Failed to fetch MR changes. Status code: {response.status_code}")
 
-        # Get the pull request by number
-        pull_request = repo.get_pull(int(mr_number))
-
-        # Print pull request details
-        print(f"Title: {pull_request.title}")
-        print(f"Author: {pull_request.user.login}")
-        print(f"Created at: {pull_request.created_at}")
-        print(f"Updated at: {pull_request.updated_at}")
-        print(f"URL: {pull_request.html_url}")
-        print(f"Description:\n{pull_request.body}")
-        print(f"List of changed files:\n{pull_request.get_files}")
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
 
 if __name__ == "__main__":
-    repo_url = input("Enter the GitHub repository URL: ")
-    mr_number = input("Enter the pull request (MR) number: ")
+    parser = ArgumentParser(description="Util: get MR data")
+    parser.add_argument("--repo_name", "-r", help="Repository name", default=DEFAULT_REPO)
+    parser.add_argument("--owner", "-o", help="Repository owner", default=DEFAULT_OWNER)
+    parser.add_argument("--mr_number", "-n", help="MR number.", default=None)
+    args = parser.parse_args()
 
-    fetch_pull_request_data(repo_url, mr_number)
+    fetch_pull_request_data(args.repo_name, args.owner, args.mr_number)
